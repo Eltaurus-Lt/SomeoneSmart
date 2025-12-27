@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>тупо вставить картинку на фон</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .row {
+      margin-bottom: 10px;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      display: block;
+      margin-top: 15px;
+      max-width: 100%;
+    }
+    #downloadBtn {
+      margin-top: 10px;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>тупо вставить картинку на фон</h2>
+
+  <div class="row">
+    <label>
+      картинка:
+      <input type="file" id="fgInput" accept="image/*">
+    </label>
+  </div>
+
+  <div class="row">
+    <label>
+      фон:
+      <input type="file" id="bgInput" accept="image/*">
+    </label>
+  </div>
+
+  <button id="combineBtn">поставить на</button>
+
+  <canvas id="canvas"></canvas>
+  <a id="downloadLink" download="combined.png">
+    <button id="downloadBtn" disabled>скачать</button>
+  </a>
+
+  <script>
+    const bgInput = document.getElementById('bgInput');
+    const fgInput = document.getElementById('fgInput');
+    const combineBtn = document.getElementById('combineBtn');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const downloadLink = document.getElementById('downloadLink');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let bgImage = new Image();
+    let fgImage = new Image();
+
+    function loadImageFromFile(input, imageObj, callback) {
+      const file = input.files[0];
+      if (!file) {
+        callback(new Error('No file selected'));
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        imageObj.onload = function () {
+          callback(null);
+        };
+        imageObj.onerror = function () {
+          callback(new Error('Could not load image'));
+        };
+        imageObj.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    combineBtn.addEventListener('click', function () {
+      if (!bgInput.files[0] || !fgInput.files[0]) {
+        alert('Please select both images.');
+        return;
+      }
+
+      // Load both images first
+      loadImageFromFile(bgInput, bgImage, function (err1) {
+        if (err1) {
+          alert('Error loading background image.');
+          return;
+        }
+
+        loadImageFromFile(fgInput, fgImage, function (err2) {
+          if (err2) {
+            alert('Error loading center image.');
+            return;
+          }
+
+          // Set canvas size to background image size
+          canvas.width = bgImage.width;
+          canvas.height = bgImage.height;
+
+          // Draw background image
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+
+          // Scale the center image to be smaller (e.g. 50% of background width)
+          const scale = 0.5; // you can change this
+          const desiredWidth = canvas.width * scale;
+          const aspectRatio = fgImage.width / fgImage.height;
+          const desiredHeight = desiredWidth / aspectRatio;
+
+          // Center position
+          const x = (canvas.width - desiredWidth) / 2;
+          const y = (canvas.height - desiredHeight) / 2;
+
+          // Draw center image
+          ctx.drawImage(fgImage, x, y, desiredWidth, desiredHeight);
+
+          // Enable download
+          const dataURL = canvas.toDataURL('image/png');
+          downloadLink.href = dataURL;
+          downloadBtn.disabled = false;
+        });
+      });
+    });
+  </script>
+</body>
+</html>
